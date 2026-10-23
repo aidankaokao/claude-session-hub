@@ -341,7 +341,7 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
   font-family: inherit;
 }
 .compose-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
-#compose button[type='submit'] { background: var(--ink); color: #fff; border-color: var(--ink); }
+#compose button[type='submit'] { flex-shrink: 0; white-space: nowrap; background: var(--ink); color: #fff; border-color: var(--ink); }
 #compose-queue { list-style: none; margin: 8px 0 0; padding: 0; }
 #compose-queue li {
   display: flex;

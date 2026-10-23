@@ -14,7 +14,8 @@
     "hooks:install": "node scripts/install-hooks.mjs",
     "hooks:uninstall": "node scripts/install-hooks.mjs --uninstall",
     "usage:install": "node scripts/install-statusline.mjs",
-    "usage:uninstall": "node scripts/install-statusline.mjs --uninstall"
+    "usage:uninstall": "node scripts/install-statusline.mjs --uninstall",
+    "screenshots": "bash scripts/demo/screenshots.sh"
   },
   "engines": {
     "node": ">=20"

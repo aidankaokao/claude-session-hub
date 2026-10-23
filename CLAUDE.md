@@ -40,6 +40,8 @@
 - 側欄的傳話輸入框（`#compose`）不在 `renderPanel` 的 innerHTML 裡，避免每秒更新洗掉正在打的字
 - 操作：兩指滑動平移、捏合縮放（Chrome 是 ctrl+wheel，Safari 是 gesture 事件）、三指拖曳旋轉、方向鍵／WASD 平移。平移正負號是在 Mac 觸控板上實測調出來的（垂直有反轉、水平沒有），不要憑推理改
 
+`npm run screenshots`（`scripts/demo/`）：用虛構 session 啟一個隔離的 hub（port 4396），以 headless Chrome + CDP 重拍 `docs/screenshots/`，README 用的就是這些圖。
+
 目前沒有自動化測試；過去的驗證都是用 `CLAUDE_CONFIG_DIR` 指向假目錄、另開 port（如 4398/4399）跑的一次性腳本。
 
 ## 注意
@@ -61,3 +63,4 @@
 - **2026-10-23** [操作] 觸控板兩指平移、捏合縮放、方向鍵平移；遠景陸地山脈、樹、雲，霧拉遠到 340
 - **2026-10-23** [協作] 檔案衝突閃電、雙擊角色切到 Terminal、傳話（asyncRewake inbox）、context 門檻自動請它更新文件、活動熱力圖；需重跑 hooks:install、usage:install 並 hub:restart
 - **2026-10-23** [簡化] 拿掉 context 自動提醒（reminders.mjs、settings.mjs、/api/remind、/api/settings），改成右上角 context 用量清單；熱力圖 404 時提示可能是 hub 未重啟
+- **2026-10-23** [文件] README（含 demo 截圖）與 `npm run screenshots`；修正側欄「送出」按鈕被擠成直排
