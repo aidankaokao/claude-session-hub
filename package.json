@@ -1,0 +1,22 @@
+{
+  "name": "claude-session-hub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Visualize every running Claude Code session on this machine as characters on 3D islands.",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "hub:start": "bash scripts/hub.sh start",
+    "hub:stop": "bash scripts/hub.sh stop",
+    "hub:restart": "bash scripts/hub.sh restart",
+    "hub:status": "bash scripts/hub.sh status",
+    "hub:logs": "bash scripts/hub.sh logs",
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "hooks:uninstall": "node scripts/install-hooks.mjs --uninstall",
+    "usage:install": "node scripts/install-statusline.mjs",
+    "usage:uninstall": "node scripts/install-statusline.mjs --uninstall"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

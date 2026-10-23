@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Session Hub</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="scene"></div>
+
+  <header id="hud">
+    <h1>Session Hub</h1>
+    <div class="counts">
+      <span class="pill waiting"><b id="c-waiting">0</b> 等你</span>
+      <span class="pill busy"><b id="c-busy">0</b> 工作中</span>
+      <span class="pill idle"><b id="c-idle">0</b> 閒置</span>
+    </div>
+    <div id="usage" class="usage" hidden>
+      <div class="usage-row">
+        <span class="usage-name">5 小時</span>
+        <div class="usage-bar"><i id="u5-bar"></i></div>
+        <b id="u5-pct"></b>
+      </div>
+      <div class="usage-sub" id="u5-reset"></div>
+      <div class="usage-row">
+        <span class="usage-name">本週</span>
+        <div class="usage-bar"><i id="u7-bar"></i></div>
+        <b id="u7-pct"></b>
+      </div>
+      <div class="usage-sub" id="u7-reset"></div>
+      <div class="usage-updated" id="u-updated"></div>
+    </div>
+    <div id="usage-missing" class="hint" hidden>
+      尚未取得額度資料。執行 <code>npm run usage:install</code>；只有 Pro／Max 訂閱才有這個數字
+    </div>
+    <div id="conn" class="conn">連線中…</div>
+    <div id="hooks-warning" class="hint" hidden>
+      hooks 未安裝或需要更新。執行 <code>npm run hooks:install</code>
+    </div>
+    <label class="switch" title="開啟後，權限請求會在這裡等你決定（最多 9 分鐘）；關閉時直接交給終端機">
+      <input type="checkbox" id="remote-approval" />
+      <span class="track"></span>
+      網頁審批權限
+    </label>
+    <button id="open-activity" class="hud-button">活動熱力圖</button>
+    <div id="permission-list"></div>
+    <ul id="conflict-list"></ul>
+    <ul id="waiting-list"></ul>
+  </header>
+
+  <aside id="panel" hidden>
+    <button id="panel-close" aria-label="關閉">×</button>
+    <div id="panel-body"></div>
+    <!-- rendered once per opened session so typing is not wiped by live updates -->
+    <form id="compose">
+      <h3>傳話給這個 session</h3>
+      <textarea id="compose-text" rows="3" maxlength="4000" placeholder="例如：接著把測試補齊。Cmd+Enter 送出"></textarea>
+      <div class="compose-row">
+        <span id="compose-hint" class="muted"></span>
+        <button type="submit">送出</button>
+      </div>
+      <ul id="compose-queue"></ul>
+    </form>
+  </aside>
+
+  <!-- after #panel: hidden by CSS while the panel occupies the top-right corner -->
+  <details id="ctx-board" open>
+    <summary>Context 用量 <span id="ctx-count" class="muted"></span></summary>
+    <ul id="ctx-list"></ul>
+  </details>
+
+  <div id="activity" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-label="活動熱力圖">
+      <button class="act-close" aria-label="關閉">×</button>
+      <h2>活動熱力圖</h2>
+      <div class="act-body"></div>
+    </div>
+  </div>
+  <div id="tooltip" hidden></div>
+  <div id="toast" hidden></div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
