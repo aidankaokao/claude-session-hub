@@ -9,7 +9,7 @@
 - `npm run hub:start|stop|restart|status|logs`（`scripts/hub.sh`）：背景常駐，pid 與 log 在 `~/.claude/session-hub/`。stop 會認 pid 檔，也會認佔用 port 的本專案 server（例如手動 `npm start` 啟動的）
 - `npm run hooks:install` / `hooks:uninstall`：在 `~/.claude/settings.json` 加/移除 hook（會先備份）。新增 hook 事件後要重跑 install；已在跑的 session 不一定會重新載入
 - 前端檔案每次請求都從磁碟讀，改 `public/` 只要重新整理頁面；改 `server/` 要 `npm run hub:restart`
-- 執行期資料都在 `~/.claude/session-hub/`：`hub.pid`、`hub.log`、`usage.json`
+- 執行期資料都在 `~/.claude/session-hub/`：`hub.pid`、`hub.log`、`usage.json`、`context/`、`tokens.json`
 - `npm run usage:install` / `usage:uninstall`：在使用者的 statusline 腳本 `input=$(cat)` 後插入/移除一段 snippet，把 `rate_limits`（5 小時／週額度）寫到 `~/.claude/session-hub/usage.json`（會先備份，移除後與原檔逐位元相同）
 
 ## 架構
@@ -25,7 +25,7 @@
 - `conflicts.mjs`：30 分鐘內兩個 session 用 Edit/Write 改同一檔案即為衝突（看不到 Bash 改的檔）
 - `inbox.mjs`：傳話。`hooks/hub-inbox.sh` 是 Stop hook（`asyncRewake`，timeout 43200 秒），每輪結束後長輪詢 `/inbox`；回文字 → 腳本 stderr + exit 2 喚醒 session。UserPromptSubmit／SessionEnd 會取消；沒有 listener 時訊息排隊到下一輪結束。逾時順序 hub 43000 < curl 43100 < hook 43200 秒
 - `terminal.mjs`：pid → tty → AppleScript 切到 Terminal.app 對應分頁（只支援 Terminal.app；首次會跳自動化權限）
-- `activity.mjs`：`~/.claude/history.jsonl`（使用者輸入的指令）→ 近 12 週每日、近 28 天星期×小時
+- `tokens.mjs` + `pricing.mjs`：掃描所有 transcript（含 subagent）的 `usage`，記住每個檔案讀到的位置只讀新增部分（首次約 1 秒），每 15 秒更新一次。同一個回應會寫成多行、每行重複同一份 usage，所以一定要以 message id 去除重複（實測不去重會多算約 2.25 倍）。transcript 約 30 天會被 Claude Code 清掉，每日總計存在 `session-hub/tokens.json`（同一天取 token 較多者）。等效金額依 `pricing.mjs` 價格表（含 1h／5m cache 寫入、fast ×2、us ×1.1、Haiku 5.5 長 prompt ×5），未知模型只計 token
 - `index.mjs`：HTTP + SSE（`/events`），每秒 tick，有變化才推送；tick 進行中收到事件會補跑一次
 - `describe.mjs`（tool 一行摘要）、`notify.mjs`（macOS 通知，無音效）、`paths.mjs`（`CLAUDE_CONFIG_DIR` 可覆寫，測試用）
 
@@ -35,7 +35,7 @@
 - `world.js`：廣場、島、工作站（Bash→鍛造爐、Read/Grep→書架、Edit/Write→工作台、Web/MCP→望遠鏡、Agent/Skill→傳送門、其他→中央桌）、橋、煙火（busy 超過 45 秒後結束才放）。島的 local +x 永遠朝向廣場
 - `scenery.js`：遠景陸地／山脈／樹／雲。`heightAt()` 決定地形；+z（預設鏡頭背後）留外海缺口，-z 方向山最高
 - `permissions-ui.js`：審批卡片與開關
-- `activity-ui.js`：熱力圖（單一藍色 sequential 色階，零值用底色灰）
+- `tokens-ui.js`：Tokens 與等效金額視窗（每日熱力圖用單一藍色 sequential 色階，零值用底色灰）。只能從 HUD「今日」那行的「明細」按鈕打開
 - 右上角 `#ctx-board`：所有 session 的 context % 由高到低（≥60 黃、≥80 紅，估計值標 ≈），側欄開啟時以 CSS 隱藏。compact 由使用者自己在 CLI 下指令，hub 不自動提醒
 - 側欄的傳話輸入框（`#compose`）不在 `renderPanel` 的 innerHTML 裡，避免每秒更新洗掉正在打的字
 - 操作：兩指滑動平移、捏合縮放（Chrome 是 ctrl+wheel，Safari 是 gesture 事件）、三指拖曳旋轉、方向鍵／WASD 平移。平移正負號是在 Mac 觸控板上實測調出來的（垂直有反轉、水平沒有），不要憑推理改
@@ -64,3 +64,5 @@
 - **2026-10-23** [協作] 檔案衝突閃電、雙擊角色切到 Terminal、傳話（asyncRewake inbox）、context 門檻自動請它更新文件、活動熱力圖；需重跑 hooks:install、usage:install 並 hub:restart
 - **2026-10-23** [簡化] 拿掉 context 自動提醒（reminders.mjs、settings.mjs、/api/remind、/api/settings），改成右上角 context 用量清單；熱力圖 404 時提示可能是 hub 未重啟
 - **2026-10-23** [文件] README（含 demo 截圖）與 `npm run screenshots`；修正側欄「送出」按鈕被擠成直排
+- **2026-10-23** [用量] transcript usage 統計每日 tokens 與 API 等效金額（HUD 今日、側欄每 session、活動視窗 Tokens 分頁）；新增 pricing.mjs、tokens.mjs，需 hub:restart
+- **2026-10-23** [簡化] 拿掉指令熱力圖（activity.mjs、/api/activity），視窗只剩 Tokens，改由「明細」按鈕打開；修正視窗關不掉（目前分頁存在 data-tab，被 closest() 誤判成分頁按鈕）

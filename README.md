@@ -4,7 +4,7 @@
 
 **把你電腦上所有正在跑的 Claude Code session，變成 3D 小島上的角色。**
 
-一眼看出誰在工作、誰在等你、誰的 context 快滿了，還能直接在網頁上核准權限、傳話、切回終端機。
+一眼看出誰在工作、誰在等你、誰的 context 快滿了、今天用了多少 token，還能直接在網頁上核准權限、傳話、切回終端機。
 
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/npm%20dependencies-0-brightgreen)
@@ -29,7 +29,7 @@
 | ⚡ **檔案衝突警告** | 兩個 session 在 30 分鐘內改了同一個檔案時，角色之間會打閃電，HUD 也會列出檔名 |
 | ✉️ **傳話** | 在側欄打字送給某個 session。它閒置時會立刻被喚醒，忙碌時就排隊等這一輪結束 |
 | 🖥️ **切回終端機** | 雙擊角色就會跳到 Terminal.app 裡對應的分頁 |
-| 🔥 **活動熱力圖** | 近 12 週每天的指令數、星期 × 小時的分佈，以及最常用的專案 |
+| 💰 **Tokens 與等效金額** | 左上角顯示今日的等效金額，按「明細」可以看每日熱力圖、依模型與專案的明細，以及 cache 命中率。從 transcript 統計 input／output／cache tokens，用 API 牌價換算；側欄也會顯示單一 session 的用量 |
 | 🎆 **完成煙火** | 一個 session 連續工作超過 45 秒後結束，會放一次煙火 |
 | 🔔 **macOS 通知** | session 開始等你回應時跳出通知，沒有音效 |
 
@@ -45,10 +45,10 @@
     <td align="center"><b>側欄</b>：狀態、最後的指令、resume 指令與傳話</td>
   </tr>
   <tr>
-    <td colspan="2"><img src="docs/screenshots/activity.png" alt="活動熱力圖" /></td>
+    <td colspan="2"><img src="docs/screenshots/tokens.png" alt="Tokens 與等效金額" /></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><b>活動熱力圖</b>：資料來自你在 Claude Code 輸入的指令紀錄</td>
+    <td colspan="2" align="center"><b>Tokens 與等效金額</b>：每日金額、依模型與專案的明細</td>
   </tr>
 </table>
 
@@ -123,7 +123,7 @@ flowchart LR
 | hooks（`PreToolUse`、`PermissionRequest`、`Notification`…） | 即時狀態、等待原因、網頁審批 |
 | `Stop` hook（`asyncRewake`） | 傳話：每輪結束後等 hub 的訊息，有訊息就喚醒 session |
 | statusline snippet | 5 小時／週額度、精確的 context % |
-| `~/.claude/history.jsonl` | 活動熱力圖 |
+| transcript 的 `usage`（全部檔案，含 subagent） | Tokens 與等效金額；以 message id 去除重複，每日總計另存一份 |
 
 所有執行期資料都放在 `~/.claude/session-hub/`。
 
@@ -152,6 +152,8 @@ rm -rf ~/.claude/session-hub
 - 衝突偵測只看得到 Edit／Write，看不到用 Bash 改的檔案。
 - 切換終端機只支援 Terminal.app，第一次使用時 macOS 會詢問自動化權限。
 - 傳話送到 Claude 那邊時是 hook 回饋，不是正式的使用者訊息。
+- 等效金額是用 `server/pricing.mjs` 裡的 API 牌價換算的，**不是訂閱制的實際帳單**；有新模型時要手動更新價格表，沒有價格的模型（例如透過 proxy 使用的非 Claude 模型）只計 token。
+- Claude Code 預設只保留約 30 天的 transcript。hub 會把每日總計存在 `~/.claude/session-hub/tokens.json`，但開始使用之前的歷史只能回溯到當時還留著的 transcript。
 
 ## 📁 專案結構
 

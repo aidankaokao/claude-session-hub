@@ -19,7 +19,7 @@ import { readUsage } from './usage.mjs';
 import { findConflicts } from './conflicts.mjs';
 import { cancel, dropQueued, enqueue, forgetInbox, inboxState, listen, onInboxChange } from './inbox.mjs';
 import { focusTerminal } from './terminal.mjs';
-import { readActivity } from './activity.mjs';
+import { refreshTokens, tokenReport, tokenSnapshot } from './tokens.mjs';
 
 const MAX_MESSAGE_CHARS = 4000;
 
@@ -47,6 +47,7 @@ let snapshot = JSON.stringify({
   hooksInstalled: false,
   remoteApproval: false,
   usage: null,
+  tokens: null,
 });
 let currentSessions = [];
 
@@ -65,7 +66,10 @@ async function tick() {
   ticking = true;
   try {
     const { sessions, edits } = await collectSessions();
-    forgetInbox(new Set(sessions.map((s) => s.id)));
+    const aliveIds = new Set(sessions.map((s) => s.id));
+    forgetInbox(aliveIds);
+    // rate-limited internally; not awaited so the first full scan doesn't stall the tick
+    refreshTokens().catch((err) => console.error('[hub] token scan failed:', err));
     currentSessions = sessions;
     const next = JSON.stringify({
       sessions,
@@ -75,6 +79,7 @@ async function tick() {
       hooksInstalled: await hooksInstalled(),
       remoteApproval: isRemoteApproval(),
       usage: await readUsage(),
+      tokens: tokenSnapshot(aliveIds),
     });
     if (next !== snapshot) {
       snapshot = next;
@@ -234,10 +239,13 @@ const server = http.createServer((req, res) => {
     }
     return hookRoutes[route](req, res);
   }
-  if (req.method === 'GET' && route === '/api/activity') {
-    readActivity().then(
+  if (req.method === 'GET' && route === '/api/tokens') {
+    tokenReport().then(
       (data) => res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(data)),
-      () => res.writeHead(500).end(),
+      (err) => {
+        console.error(`[hub] ${route} failed:`, err);
+        res.writeHead(500).end();
+      },
     );
     return;
   }

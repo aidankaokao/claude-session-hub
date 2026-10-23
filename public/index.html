@@ -39,6 +39,12 @@
       <div class="usage-sub" id="u7-reset"></div>
       <div class="usage-updated" id="u-updated"></div>
     </div>
+    <div id="tokens-today" class="tokens-today" hidden>
+      <span class="usage-name">今日</span>
+      <b id="tokens-cost"></b>
+      <span id="tokens-sub" class="muted"></span>
+      <button id="open-tokens" class="mini-button" title="每日、各模型與各專案的明細">明細</button>
+    </div>
     <div id="usage-missing" class="hint" hidden>
       尚未取得額度資料。執行 <code>npm run usage:install</code>；只有 Pro／Max 訂閱才有這個數字
     </div>
@@ -51,7 +57,6 @@
       <span class="track"></span>
       網頁審批權限
     </label>
-    <button id="open-activity" class="hud-button">活動熱力圖</button>
     <div id="permission-list"></div>
     <ul id="conflict-list"></ul>
     <ul id="waiting-list"></ul>
@@ -78,10 +83,10 @@
     <ul id="ctx-list"></ul>
   </details>
 
-  <div id="activity" class="modal" hidden>
-    <div class="modal-card" role="dialog" aria-label="活動熱力圖">
+  <div id="tokens-modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-label="Tokens 與等效金額">
       <button class="act-close" aria-label="關閉">×</button>
-      <h2>活動熱力圖</h2>
+      <h2>Tokens 與等效金額</h2>
       <div class="act-body"></div>
     </div>
   </div>

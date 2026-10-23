@@ -43,14 +43,17 @@ SESSIONS.forEach((s, i) => {
     ...(s.edits ?? []).map((f, k) => ({
       type: 'assistant',
       timestamp: ts(300_000 - k * 60_000),
-      message: { model: 'claude-opus-5-5', content: [{ type: 'tool_use', id: `e${k}`, name: 'Edit', input: { file_path: f } }] },
+      message: { id: `msg_${id}_e${k}`, model: 'claude-opus-5-5', content: [{ type: 'tool_use', id: `e${k}`, name: 'Edit', input: { file_path: f } }] },
     })),
     {
       type: 'assistant',
       timestamp: ts(8_000),
+      cwd: s.cwd,
+      sessionId: id,
       message: {
+        id: `msg_${id}_last`,
         model: 'claude-opus-5-5',
-        usage: { input_tokens: 2000, cache_read_input_tokens: tokens - 2000, cache_creation_input_tokens: 0 },
+        usage: { input_tokens: 2000, output_tokens: 3000 + i * 900, cache_read_input_tokens: tokens - 2000, cache_creation_input_tokens: 0 },
         content: [{ type: 'tool_use', id: 't1', name: s.tool[0], input: s.tool[1] }],
       },
     },
@@ -74,23 +77,44 @@ fs.writeFileSync(
   }),
 );
 
-// prompt history with a weekday / working-hours rhythm
 let seed = 7;
 const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const projects = ['web-shop', 'api-server', 'data-pipeline', 'docs-site', 'infra'];
-const hist = [];
-for (let d = 0; d < 84; d++) {
+
+// past API responses (deduped by message id in tokens.mjs), so the tokens tab has a few weeks of history
+const usageDir = path.join(dir, 'projects', '-Users-demo-history');
+fs.mkdirSync(usageDir, { recursive: true });
+const usage = [];
+for (let d = 0; d < 27; d++) {
   const day = new Date(now - d * 86_400_000);
-  const weekend = day.getDay() === 0 || day.getDay() === 6;
-  const n = Math.floor(rand() * (weekend ? 12 : 55) * (rand() < 0.12 ? 0 : 1));
+  if (rand() < 0.15) continue;
+  const n = Math.floor(rand() * (day.getDay() % 6 === 0 ? 8 : 40));
   for (let k = 0; k < n; k++) {
-    const h = weekend ? 13 + Math.floor(rand() * 9) : [9, 10, 10, 11, 14, 15, 15, 16, 17, 21, 22][Math.floor(rand() * 11)];
-    const t = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, Math.floor(rand() * 60)).getTime();
-    if (t > now) continue;
     const p = projects[Math.min(4, Math.floor(rand() * rand() * 5))];
-    hist.push({ display: 'demo', timestamp: t, project: `/Users/demo/${p}`, sessionId: 'demo' });
+    const model = rand() < 0.85 ? 'claude-opus-5-5' : 'claude-sonnet-5-5';
+    const ctx = 40_000 + Math.floor(rand() * 400_000);
+    const write = 2000 + Math.floor(rand() * 15_000);
+    usage.push({
+      type: 'assistant',
+      timestamp: new Date(Math.min(now - 60_000, day.getTime() - Math.floor(rand() * 8 * 3600_000))).toISOString(),
+      cwd: `/Users/demo/${p}`,
+      sessionId: 'demo-history',
+      message: {
+        id: `msg_hist_${d}_${k}`,
+        model,
+        usage: {
+          input_tokens: 50 + Math.floor(rand() * 500),
+          output_tokens: 300 + Math.floor(rand() * 6000),
+          cache_read_input_tokens: ctx,
+          cache_creation_input_tokens: write,
+          cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: write },
+          speed: 'standard',
+        },
+        content: [],
+      },
+    });
   }
 }
-fs.writeFileSync(path.join(dir, 'history.jsonl'), hist.map((l) => JSON.stringify(l)).join('\n') + '\n');
+fs.writeFileSync(path.join(usageDir, 'demo-history.jsonl'), usage.map((l) => JSON.stringify(l)).join('\n') + '\n');
 
 console.log(JSON.stringify(out.map(({ pid, id, name, waiting }) => ({ pid, id, name, waiting }))));

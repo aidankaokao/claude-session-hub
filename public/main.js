@@ -19,7 +19,7 @@ import {
 } from './world.js';
 import { bindPermissionActions, bindRemoteToggle, permissionCard } from './permissions-ui.js';
 import { createScenery } from './scenery.js';
-import { bindActivity, openActivity } from './activity-ui.js';
+import { bindTokens, fmtTokens, fmtUsd, openTokens } from './tokens-ui.js';
 
 const STATE_COLOR = { busy: 0x2fb67c, idle: 0x9aa3b2, waiting: 0xff5a4e };
 const PLAZA = '__plaza__';
@@ -542,6 +542,24 @@ function renderUsage(usage) {
   updated.textContent = `更新於 ${ago(usage.updatedAt)}前${age > USAGE_STALE_MS ? '（session 都閒置時不會更新）' : ''}`;
   updated.classList.toggle('stale', age > USAGE_STALE_MS);
 }
+// Today's API-equivalent cost; the breakdown sits in the tooltip, the full report behind the 明細 button.
+function renderTokensToday(t) {
+  $('tokens-today').hidden = !t;
+  if (!t) return;
+  $('tokens-cost').textContent = fmtUsd(t.cost);
+  $('tokens-sub').textContent = `等效 API 金額 · output ${fmtTokens(t.output)}`;
+  $('tokens-today').title = [
+    `input ${fmtTokens(t.input)}`,
+    `output ${fmtTokens(t.output)}`,
+    `cache 讀取 ${fmtTokens(t.read)}`,
+    `cache 寫入 ${fmtTokens(t.write)}`,
+    t.unpriced ? `未計價模型 ${fmtTokens(t.unpriced)}` : '',
+    '用 API 牌價換算，不是訂閱的實際帳單',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 const titleOf = (sessionId) => {
   const s = latest.sessions.find((x) => x.id === sessionId);
   return s ? s.title || s.name : '';
@@ -556,6 +574,7 @@ function renderHud(state) {
   $('hooks-warning').hidden = state.hooksInstalled;
   $('remote-approval').checked = state.remoteApproval;
   renderUsage(state.usage);
+  renderTokensToday(state.tokens?.today);
 
   $('permission-list').innerHTML = permissions.map((p) => permissionCard(p, titleOf(p.sessionId))).join('');
 
@@ -640,9 +659,9 @@ async function focusTerminal(sessionId) {
   if (msg) toast(msg);
 }
 
-const activityRoot = $('activity');
-bindActivity(activityRoot, $('tooltip'));
-$('open-activity').onclick = () => openActivity(activityRoot);
+const tokensModal = $('tokens-modal');
+bindTokens(tokensModal, $('tooltip'));
+$('open-tokens').onclick = () => openTokens(tokensModal);
 bindPermissionActions($('permission-list'), (id) => focusSession(id));
 bindPermissionActions($('panel-body'), (id) => focusSession(id));
 bindRemoteToggle($('remote-approval'));
@@ -671,6 +690,10 @@ function renderPanel() {
           .join('、')}</div>`)
         .join('')}</div>`
     : '';
+  const used = latest.tokens?.sessions?.[s.id];
+  const usageText = used
+    ? `${fmtUsd(used.cost)}${used.unpriced ? '（部分未計價）' : ''} · output ${fmtTokens(used.output)} · 共 ${fmtTokens(used.input + used.output + used.read + used.write)} tokens`
+    : '—';
   const ctxText = s.contextPct == null ? '—' : `${Math.round(s.contextPct)}%${s.contextExact ? '' : '（估計）'}`;
   $('panel-body').innerHTML = `
     <h2>${esc(s.title || s.name)}</h2>
@@ -689,6 +712,7 @@ function renderPanel() {
       <dt>模型</dt><dd>${esc(s.model ?? '—')}</dd>
       <dt>權限模式</dt><dd>${esc(s.permissionMode ?? '—')}</dd>
       <dt>Context</dt><dd>${ctxText} · ${kTokens(s.contextTokens)} tokens</dd>
+      <dt>用量</dt><dd>${usageText}</dd>
       <dt>Subagents</dt><dd>${s.subagents}</dd>
       <dt>已執行</dt><dd>${ago(s.startedAt)}</dd>
       <dt>PID</dt><dd>${s.pid}</dd>

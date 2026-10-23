@@ -77,9 +77,9 @@ await evaluate(`document.querySelector('#ctx-list li[data-id]:nth-child(3)')?.cl
 await sleep(4000);
 await shot('panel');
 
-await evaluate(`document.getElementById('panel-close').click(); document.getElementById('open-activity').click()`);
+await evaluate(`document.getElementById('panel-close').click(); document.getElementById('open-tokens').click()`);
 await sleep(2000);
-await shot('activity');
+await shot('tokens');
 
 ws.close();
 process.exit(0);
